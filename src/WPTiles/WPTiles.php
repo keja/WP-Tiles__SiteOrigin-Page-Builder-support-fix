@@ -107,6 +107,7 @@ class WPTiles extends Abstracts\WPSingleton
      * @deprecated since version 1.0 Use display tiles instead
      */
     public function show_tiles( $atts_array ) {
+
         $query = Legacy::get_atts_array_query( $atts_array );
         $opts  = Legacy::convert_option_array( $atts_array );
 
@@ -127,6 +128,7 @@ class WPTiles extends Abstracts\WPSingleton
     }
 
     public function get_tiles( $posts = array(), $opts = array() ) {
+
 
         //
         // SETUP
@@ -293,6 +295,19 @@ class WPTiles extends Abstracts\WPSingleton
         if ( !empty( $opts['extra_classes_grid_selector'] ) )
             $opts['extra_classes_grid_selector'] = ' ' . $opts['extra_classes_grid_selector'];
 
+
+
+
+
+
+
+
+
+
+
+
+
+
         /**
          * Render the template
          *
@@ -302,165 +317,171 @@ class WPTiles extends Abstracts\WPSingleton
          * of HTML. Remeber that ?> strips a following newline, so always leave an
          * empty line after ?>.
          */
-        ob_start();
-        if ( count( $grid_names ) > 1 ) : ?>
 
-        <div id="<?php echo $wp_tiles_id; ?>-templates" class="wp-tiles-templates<?php echo $opts['extra_classes_grid_selector'] ?>">
+        //ob_start();
+        $out = array();
 
-            <ul class="wp-tiles-template-selector">
-            <?php foreach ( $grid_names as $slug => $name ) : ?>
+        if ( count( $grid_names ) > 1 ) {
+            $out[] = "<div id='{$wp_tiles_id}>-templates' class='wp-tiles-templates{$opts["extra_classes_grid_selector"]}'>";
+            $out[] = "  <ul class='wp-tiles-template-selector'>";
+            foreach ($grid_names as $slug => $name) {
+                $out[] = "    <li class='wp-tiles-template' data-grid='{$slug}'>{$name}</li>";
+            }
+            $out[] = "  </ul>";
+            $out[] = "</div>";
+        }
+        //die("1");
+        $out[] = "<div class='wp-tiles-container{$opts["extra_classes"]}'>";
+        if ( 'carousel' == $opts['link'] ){
+            $out[] = apply_filters( 'gallery_style', '<div id="{$wp_tiles_id}" class="wp-tiles-grid gallery ' . implode( ' ', $classes ) . '">' );
+        } else {
+            $out[] = "<div id='{$wp_tiles_id}' class='wp-tiles-grid ".implode( ' ', $classes )."'>";
+        }
 
-                <li class="wp-tiles-template" data-grid="<?php echo $slug ?>"><?php echo $name; ?></li>
-            <?php endforeach; ?>
+        $out[] = $this->render_tile_html( $posts, $opts );
+        $out[] = "</div>";
+        $out[] = "</div>"; //wp-tiles-container
+        //die("2");
 
-            </ul>
-
-        </div>
-        <?php endif; ?>
-
-        <div class="wp-tiles-container<?php echo $opts['extra_classes'] ?>">
-        <?php if ( 'carousel' == $opts['link'] ):?>
-
-            <?php echo apply_filters( 'gallery_style', '<div id="' . $wp_tiles_id . '" class="wp-tiles-grid gallery ' . implode( ' ', $classes ) . '">' ); ?>
-        <?php else : ?>
-
-            <div id="<?php echo $wp_tiles_id; ?>" class="wp-tiles-grid <?php echo implode( ' ', $classes ); ?>">
-        <?php endif; ?>
-                <?php $this->render_tile_html( $posts, $opts ) ?>
-
-            </div>
-
-        </div>
-        <?php
 
         /**
          * Pagination
          **/
-        if ( $next_page && 'ajax' === $opts['pagination'] && $opts['next_query'] ) : ?>
+        if ( $next_page && 'ajax' === $opts['pagination'] && $opts['next_query'] ){
 
-        <nav class="wp-tiles-pagination wp-tiles-pagination-ajax" id="<?php echo $wp_tiles_id; ?>-pagination">
-            <a href="<?php next_posts( $max_page, true ) ?>"><?php echo apply_filters( 'wp_tiles_load_more_text', __( 'Load More', 'wp-tiles' ) ) ?></a>
-        </nav>
-        <?php elseif ( 'prev_next' === $opts['pagination'] ) : ?>
-            <?php wp_tiles_prev_next_nav( $wp_query, $wp_tiles_id ); ?>
+        $out[] = "<nav class='wp-tiles-pagination wp-tiles-pagination-ajax' id='{$wp_tiles_id}-pagination'>";
+            $out[] = "<a href='". next_posts( $max_page, true ) . "'>". apply_filters( 'wp_tiles_load_more_text', __( 'Load More', 'wp-tiles' ) ). "</a>";
+        $out[] = "</nav>";
+        } elseif ( 'prev_next' === $opts['pagination'] ) {
+            $out[] = wp_tiles_prev_next_nav( $wp_query, $wp_tiles_id );
 
-        <?php elseif ( 'paging' === $opts['pagination'] ) : ?>
-            <?php wp_tiles_paging_nav( $wp_query, $wp_tiles_id ); ?>
+        } elseif ( 'paging' === $opts['pagination'] ) {
+            $out[] = wp_tiles_paging_nav( $wp_query, $wp_tiles_id );
+        }
 
-        <?php endif;
+        //$out = ob_get_contents();
+        //ob_end_clean();
 
-        $out = ob_get_contents();
-        ob_end_clean();
-
-        return $out;
+        return implode("", $out);
     }
+
+
+
+
+
+
+
+
+
+
+
 
     public function render_tile_html( $posts, $opts ) {
 
-        foreach( $posts as $post ) :
+        $out = array();
+
+        foreach( $posts as $post ) {
 
             $img = false;
-            if ( !$opts['text_only'] && $img = $this->get_first_image( $post, $opts['image_size'] ) ) {
+            if (!$opts['text_only'] && $img = $this->get_first_image($post, $opts['image_size'])) {
                 $wrapper_class = 'wp-tiles-tile-with-image';
-            } elseif ( $opts['images_only'] ) {
+            } elseif ($opts['images_only']) {
                 continue; // If text_only *and* image_only are enabled, the user should expect 0 tiles..
 
             } else {
                 $wrapper_class = 'wp-tiles-tile-text-only';
             }
 
-            if ( $opts['byline_template_textonly'] && ($opts['text_only'] || !$img ) ) {
-                $byline = $this->render_byline( $opts['byline_template_textonly'], $post );
 
-            } elseif ( $opts['byline_template'] ) {
-                $byline = $this->render_byline( $opts['byline_template'], $post );
+            if ($opts['byline_template_textonly'] && ($opts['text_only'] || !$img)) {
+                $byline = $this->render_byline($opts['byline_template_textonly'], $post);
+
+            } elseif ($opts['byline_template']) {
+                $byline = $this->render_byline($opts['byline_template'], $post);
 
             } else {
                 $byline = false;
             }
 
             // Tile Classes
-            $tile_classes = array( 'wp-tiles-tile' );
+            $tile_classes = array('wp-tiles-tile');
 
-            $categories = get_the_category( $post->ID );
-            foreach( $categories as $category ) {
+            $categories = get_the_category($post->ID);
+            foreach ($categories as $category) {
                 $tile_classes[] = $category->slug;
             }
 
-            if ( 'carousel' == $opts['link'] )
+            if ('carousel' == $opts['link'])
                 $tile_classes[] = 'gallery-item';
 
-            $tile_classes = array_unique( apply_filters( 'wp_tiles_tile_classes', $tile_classes, $post ) );
+            $tile_classes = array_unique(apply_filters('wp_tiles_tile_classes', $tile_classes, $post));
 
             // Link attributes
             $link_attributes = array();
 
-            if ( $opts['link_new_window'] )
+            if ($opts['link_new_window'])
                 $link_attributes['target'] = '_blank';
 
-            $link_attributes = apply_filters( 'wp_tiles_link_attributes', $link_attributes );
+            $link_attributes = apply_filters('wp_tiles_link_attributes', $link_attributes);
             $link_attributes_string = "";
-            foreach( $link_attributes as $att => $value ) {
+            foreach ($link_attributes as $att => $value) {
                 $link_attributes_string .= " $att='$value'";
             }
 
-            ?>
 
-                <div class='<?php echo implode( ' ', $tile_classes ) ?>' id='tile-<?php echo $post->ID ?>'>
-                <?php if ( 'post' == $opts['link'] ) : ?>
 
-                    <a href="<?php echo $this->_get_permalink( $post->ID ) ?>" title="<?php echo esc_attr( apply_filters( 'the_title', $post->post_title, $post->ID ) ) ?>"<?php echo $link_attributes_string ?>>
-                <?php elseif ( 'file' == $opts['link'] ) : ?>
+            $out[] = "<div class='". implode(' ', $tile_classes) ."' id='tile-{$post->ID}'>";
+                if ('post' == $opts['link']){
+                    $out[] = "<a href='". $this->_get_permalink($post->ID) ."' title='". esc_attr(apply_filters('the_title', $post->post_title, $post->ID)) ."' ".$link_attributes_string .">";
+                } elseif ('file' == $opts['link']) {
+                    $out[] = "<a href='" . $this->get_first_image($post, 'full') . "' title='" . esc_attr(apply_filters('the_title', $post->post_title, $post->ID)) . "' " . $link_attributes_string . ">";
+                } elseif ('thickbox' == $opts['link']) {
+                    $out[] = "<a href='" . $this->get_first_image($post, 'full') . " title='" . esc_attr(strip_tags($byline)) . "' class='" . esc_attr(apply_filters('wp_tiles_thickbox_class', 'thickbox')) . "'' rel='" . $this->tiles_id . "' " . $link_attributes_string . ">";
+                } elseif ('carousel' == $opts['link']) {
+                    $out[] = "<a href='" . $this->get_first_image($post, 'full') . "' title='" . esc_attr(strip_tags($byline)) . "' " . Gallery::get_carousel_image_attr($post) . ">";
+                }
 
-                    <a href="<?php echo $this->get_first_image( $post, 'full' ) ?>" title="<?php echo esc_attr( apply_filters( 'the_title', $post->post_title, $post->ID ) ) ?>"<?php echo $link_attributes_string ?>>
-                <?php elseif ( 'thickbox' == $opts['link'] ) : ?>
+                                $out[] = "<article class='{$wrapper_class} wp-tiles-tile-wrapper' itemscope itemtype='http://schema.org/CreativeWork'>";
+                                    if ($img) {
 
-                    <a href="<?php echo $this->get_first_image( $post, 'full' ) ?>" title="<?php echo esc_attr( strip_tags( $byline ) ) ?>" class="<?php echo esc_attr( apply_filters( 'wp_tiles_thickbox_class', 'thickbox' ) ) ?>" rel="<?php echo $this->tiles_id ?>"<?php echo $link_attributes_string ?>>
-                <?php elseif ( 'carousel' == $opts['link'] ) : ?>
+                                        $out[] = "<div class='wp-tiles-tile-bg'>";
 
-                    <a href="<?php echo $this->get_first_image( $post, 'full' ) ?>" title="<?php echo esc_attr( strip_tags( $byline ) ) ?>"<?php echo Gallery::get_carousel_image_attr( $post ) ?>>
-                <?php endif; ?>
+                                            $out[] = "<img src='{$img}' class='wp-tiles-img' itemprop='image' />";
 
-                        <article class='<?php echo $wrapper_class ?> wp-tiles-tile-wrapper' itemscope itemtype="http://schema.org/CreativeWork">
-                        <?php if ( $img ) : ?>
+                                        $out[] = "</div >";
+                                    }
+                                    if ($byline || !$opts['hide_title']) {
 
-                            <div class='wp-tiles-tile-bg'>
+                                        $out[] = "<div class='wp-tiles-byline'>";
 
-                                <img src='<?php echo $img ?>' class='wp-tiles-img' itemprop="image" />
+                                        $out[] = "<div class='wp-tiles-byline-wrapper'>";
+                                        if (!$opts['hide_title']) {
 
-                            </div>
-                        <?php endif; ?>
-                        <?php if ( $byline || !$opts['hide_title'] ) : ?>
+                                            $out[] = "<h4 itemprop='name' class='wp-tiles-byline-title'>" . apply_filters('the_title', $post->post_title, $post->ID) . "</h4>";
+                                        }
+                                        if ($byline) {
 
-                            <div class='wp-tiles-byline'>
+                                            $out[] = "<div class='wp-tiles-byline-content' itemprop='description'>";
+                                            $out[] = $byline;
 
-                                <div class='wp-tiles-byline-wrapper'>
-                                <?php if ( !$opts['hide_title'] ) : ?>
+                                            $out[] = "</div>";
+                                        }
 
-                                    <h4 itemprop="name" class="wp-tiles-byline-title"><?php echo apply_filters( 'the_title', $post->post_title, $post->ID ) ?></h4>
-                                <?php endif; ?>
-                                <?php if ( $byline ) : ?>
+                                        $out[] = "</div>";
 
-                                    <div class='wp-tiles-byline-content' itemprop="description">
-                                        <?php echo $byline; ?>
+                                        $out[] = "</div>";
+                                    }
 
-                                    </div>
-                                <?php endif; ?>
+                                $out[] = "</article>";
+                                if ($opts['link'] && 'none' != $opts['link']) {
 
-                                </div>
+                                    $out[] = "</a>";
+                                }
 
-                            </div>
-                        <?php endif; ?>
+            $out[] = "</div>";
 
-                        </article>
-                <?php if ( $opts['link'] && 'none' != $opts['link'] ) : ?>
-
-                    </a>
-                <?php endif; ?>
-
-                </div>
-            <?php
-        endforeach;
+        } //foreach
+        echo implode("", $out);
     }
 
         protected function _get_permalink( $post_id ) {
@@ -472,13 +493,12 @@ class WPTiles extends Abstracts\WPSingleton
         // Only use below filter to change the byline on a per-post level
         $template = apply_filters( 'wp_tiles_byline_template_post', $template, $post );
 
-        $tags = array(
-            '%title%'   => apply_filters( 'the_title', $post->post_title, $post->ID ),
-            '%content%' => apply_filters( 'the_content', strip_shortcodes( $post->post_content ) ),
-            '%excerpt%' => $this->get_the_excerpt( $post ),
-            '%date%'    => $this->get_the_date( $post ),
-            '%link%'    => get_permalink( $post ),
-        );
+        $tags['%title%']   = apply_filters( 'the_title', $post->post_title, $post->ID );
+        //$tags['%content%'] = apply_filters( 'the_content', strip_shortcodes( $post->post_content ) );
+        //$tags['%excerpt%'] = $this->get_the_excerpt( $post );
+        //$tags['%date%']    = $this->get_the_date( $post );
+        $tags['%link%']    = get_permalink( $post );
+
 
         // Only do the more expensive tags if needed
         if ( strpos( $template, '%featured_image%' ) !== false ) {
@@ -663,6 +683,7 @@ class WPTiles extends Abstracts\WPSingleton
     }
 
     function get_the_excerpt( $text, $excerpt = '' ) {
+
         if ( is_a( $text, 'WP_Post' ) ) {
             $excerpt = $text->post_excerpt;
             $text = $text->post_content;
