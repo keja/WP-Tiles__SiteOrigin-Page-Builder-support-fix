@@ -1,3 +1,11 @@
+=== Changed ===
+* render_byline - some functionality missing in here.
+* render_tile_html
+* get_tiles
+
+in order to make this WP Tiles plugin work with the SiteOrigin Page Builder
+
+
 === WP Tiles ===
 Contributors: Mike_Cowobo
 Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=U32MTZ9VGHLKS
