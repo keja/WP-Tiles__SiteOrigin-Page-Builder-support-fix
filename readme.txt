@@ -1,10 +1,19 @@
+=== Problem ===
+When trying to add WP Tiles into SiteOrigin Page Builder, it would trigger:
+Error 324 (net::ERR_EMPTY_RESPONSE): The server closed the connection without sending any data.
+
+=== Solution ===
+In order to make the WP Tiles plugin work with SiteOrigin Page Builder, i had to change 3 methods within /WPTiles/WPTiles.php
+
 === Changed ===
 * render_byline - some functionality missing in here.
 * render_tile_html
 * get_tiles
 
-in order to make this WP Tiles plugin work with the SiteOrigin Page Builder
 
+
+=================
+original readme:
 
 === WP Tiles ===
 Contributors: Mike_Cowobo
